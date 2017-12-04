@@ -26,6 +26,12 @@ mdf <- na.omit(mdf)
 mdf <- select(mdf, -train_id, -name)
 
 
+# Also, there are too many factors when it comes to brand name,
+# so let's drop it (for now), alongside C3
+
+mdf <- select(mdf, -brand_name, -C3)
+
+
 # # Produces random subset of dataset with n datapoints
 # n <- 100
 # set.seed(1234) # For reproducibility
