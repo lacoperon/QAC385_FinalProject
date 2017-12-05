@@ -3,12 +3,19 @@ library(dplyr)
 
 # Splits dataset into test + training data
 index <- createDataPartition(mdf$price, p=0.7, list=FALSE)
+# 
+# mdf$condit <- grepl("condit", tolower(mdf$item_description), fixed=TRUE)
+# mdf$new  <- grepl("new",  tolower(mdf$item_description), fixed=TRUE)
+# mdf$used <- grepl("used", tolower(mdf$item_description), fixed=TRUE)
+# mdf$authen <- grepl("authen", tolower(mdf$item_description), fixed=TRUE)
+# mdf$origin <- grepl("origin", tolower(mdf$item_description), fixed=TRUE)
+# mdf$great <- grepl("great", tolower(mdf$item_description), fixed=TRUE)
+# mdf$item <- grepl("item", tolower(mdf$item_description), fixed=TRUE)
+# mdf$color <- grepl("color", tolower(mdf$item_description), fixed=TRUE)
+# mdf$size  <- grepl("size", tolower(mdf$item_description), fixed=TRUE)
+# mdf$pleas <- grepl("pleas", tolower(mdf$item_description), fixed=TRUE)
+# mdf$bundl <- grepl("bundl", tolower(mdf$item_description), fixed=TRUE)
 
-mdf$louis <- grepl("louis", tolower(mdf$item_description), fixed=TRUE)
-mdf$gold  <- grepl("gold",  tolower(mdf$item_description), fixed=TRUE)
-mdf$excel <- grepl("excel", tolower(mdf$item_description), fixed=TRUE)
-mdf$authen <- grepl("authen", tolower(mdf$item_description), fixed=TRUE)
-mdf$origin <- grepl("origin", tolower(mdf$item_description), fixed=TRUE)
 
 
 mdf_train <- mdf[index,]
@@ -21,8 +28,9 @@ mdf_test <- select(mdf_test, -item_description, -name)
 
 
 
-
-mdf_rich <- filter(mdf, price > 700)
+library(tm)
+mdf_rich <- filter(mdf, price > 100)
+mdf_poor <- filter(mdf, price < 10)
 sms_corpus <- Corpus(VectorSource(mdf_rich$item_description))
 # clean up the corpus using tm_map()
 corpus_clean <- tm_map(sms_corpus, tolower)
@@ -32,7 +40,19 @@ corpus_clean <- tm_map(corpus_clean, removePunctuation)
 corpus_clean <- tm_map(corpus_clean, stripWhitespace)
 corpus_clean <- tm_map(corpus_clean, stemDocument)
 
+
+sms_corpus_poor <- Corpus(VectorSource(mdf_poor$item_description))
+# clean up the corpus using tm_map()
+corpus_clean_poor <- tm_map(sms_corpus_poor, tolower)
+corpus_clean_poor <- tm_map(corpus_clean_poor, removeNumbers)
+corpus_clean_poor <- tm_map(corpus_clean_poor, removeWords, stopwords())
+corpus_clean_poor <- tm_map(corpus_clean_poor, removePunctuation)
+corpus_clean_poor <- tm_map(corpus_clean_poor, stripWhitespace)
+corpus_clean_poor <- tm_map(corpus_clean_poor, stemDocument)
+
 desc_dtm <- DocumentTermMatrix(corpus_clean)
+desc_dtm_poor <- DocumentTermMatrix(corpus_clean_poor)
 sms_dtm_train <- desc_dtm
-sms_train_labels <- mdf_rich$price
-sms_freq_words <- findFreqTerms(sms_dtm_train, 50)
+
+rich_freq_words <- findFreqTerms(desc_dtm, 5000)
+poor_freq_words <- findFreqTerms(desc_dtm_poor, 25000)
