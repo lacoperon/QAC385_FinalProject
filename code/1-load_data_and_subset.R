@@ -37,5 +37,3 @@ mdf <- select(mdf, -brand_name, -C3)
 # set.seed(1234) # For reproducibility
 # ss_indices <- sample(1:nrow(mdf), n)
 # mdf_ss <- mdf[ss_indices,]
-
-
