@@ -7,7 +7,7 @@ pp <- c("center", "scale", "nzv")
 # Logistic Regression
 
 set.seed(1234)
-n <- 100000
+n <- 60000
 rand_train <- mdf_train[sample(1:nrow(mdf_train), n, replace=FALSE),]
 
 model.glm <- train(price ~ .,
@@ -55,20 +55,28 @@ corpus_clean <- tm_map(corpus_clean, removeWords, stopwords())
 corpus_clean <- tm_map(corpus_clean, removePunctuation)
 corpus_clean <- tm_map(corpus_clean, stripWhitespace)
 
+rand_test.nb <- text_test[sample(1:nrow(text_test), n, replace=FALSE),]
+sms_corpus_test <- Corpus(VectorSource(rand_test.nb$item_description))
+
+corpus_clean_test <- tm_map(sms_corpus_test, tolower)
+corpus_clean_test <- tm_map(corpus_clean_test, removeNumbers)
+corpus_clean_test <- tm_map(corpus_clean_test, removeWords, stopwords())
+corpus_clean_test <- tm_map(corpus_clean_test, removePunctuation)
+corpus_clean_test <- tm_map(corpus_clean_test, stripWhitespace)
+
 library(SnowballC)
 corpus_clean <- tm_map(corpus_clean, stemDocument)
+corpus_clean_test <- tm_map(corpus_clean_test, stemDocument)
 
-rand_train.nb[1,]
-inspect(corpus_clean[1])
+desc_dtm <- DocumentTermMatrix(corpus_clean)
+desc_dtm_test <- DocumentTermMatrix(corpus_clean_test)
 
-sms_dtm <- DocumentTermMatrix(corpus_clean)
-
-sms_dtm_train <- sms_dtm[1:4169, ]
-sms_dtm_test  <- sms_dtm[4170:5559, ]
+sms_dtm_train <- desc_dtm
+sms_dtm_test  <- desc_dtm_test
 
 
-sms_train_labels <- text_train$price[1:4169]
-sms_test_labels  <- text_train$price[4170:5559]
+sms_train_labels <- rand_train.nb$price
+sms_test_labels  <- rand_test.nb$price
 
 sms_freq_words <- findFreqTerms(sms_dtm_train, 5)
 head(sms_freq_words, 20)
@@ -87,12 +95,63 @@ sms_train <- apply(sms_dtm_freq_train, 2, convert_counts)
 sms_test  <- apply(sms_dtm_freq_test,  2, convert_counts)
 
 library(e1071)
-sms_classifier <- naiveBayes(sms_train, sms_train_labels)
+sms_classifier <- naiveBayes(sms_train, sms_train_labels > 100, laplace=1)
 sms_classifier
 
 sms_test_pred <- predict(sms_classifier, sms_test)
+rand_test.nb$nb_pred <- sms_test_pred
 
-yhat.nb <- predict(sms_classifier, newdata=sms_test)
-rmse.nb <- sqrt(mean((yhat.nb - sms_test_labels)^2))
-rsq.nb  <- cor(yhat.nb, sms_test$price)^2
+model.glm <- train(price ~ .,
+                   data = rand_train,
+                   method = "glm",
+                   preProcess = pp
+)
+
+# Lasso training data
+
+set.seed(1234)
+n <- 400000 #marginal return on code running after this point
+rand_train <- mdf_train[sample(1:nrow(mdf_train), n, replace=FALSE),]
+control <- trainControl(method="repeatedcv", number=4, repeats=2)
+
+x <- model.matrix(price ~ ., rand_train)[,-1] # gets rid of the intercept column
+# dependent variable
+y <- rand_train$price
+
+# specify the lamba values to investigate
+grid <- 10^seq(8, -4, length=250)
+
+library(glmnet)
+model.lasso <- glmnet(x, y, alpha=1, lambda=grid)
+plot(model.lasso, xvar="lambda", main="Lasso")
+
+
+# 10-fold cross validation of lambda values on MSE
+set.seed(1234)
+cv.lambda <- cv.glmnet(x, y, lambda=grid, alpha=1)
+plot(cv.lambda)
+bestlam <- cv.lambda$lambda.min
+bestlam
+
+coef(model.lasso, s=bestlam)
+
+x <- model.matrix(price ~ ., mdf_test)[,-1]
+lasso.pred <- predict(model.lasso, s=bestlam, newx=x)
+rmse.lasso <- sqrt(mean((lasso.pred - mdf_test$price)^2))
+
+rmse.lasso <- sqrt(mean((lasso.pred - mdf_test$price)^2))
+rsq.lasso  <- cor(lasso.pred, mdf_test$price)^2
+
+
+# Attempt at XGB Boosting
+
+set.seed(1234)
+n <- 400000 #marginal return on code running after this point
+
+library(xgboost)
+
+model.xgboost <- xgboost(data = rand_tr) 
+
+
+
 
