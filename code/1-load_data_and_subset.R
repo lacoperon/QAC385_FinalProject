@@ -19,7 +19,7 @@ mdf$brand_name <- as.factor(mdf$brand_name)
 mdf$shipping <- as.factor(mdf$shipping)
 
 #Now, we want to drop all rows for which there are NA values remaining
-mdf <- na.omit(mdf)
+ mdf <- na.omit(mdf)
 
 #Also, we don't really care what the names / train_ids of the products are 
 #(perhaps there's information here that we're losing -- to look at later)
@@ -29,7 +29,7 @@ mdf <- select(mdf, -train_id)
 # Also, there are too many factors when it comes to brand name,
 # so let's drop it (for now), alongside C3
 
-mdf <- select(mdf, -brand_name, -C3)
+# mdf <- select(mdf, -brand_name, -C3)
 
 
 # # Produces random subset of dataset with n datapoints

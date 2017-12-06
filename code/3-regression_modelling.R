@@ -7,7 +7,7 @@ pp <- c("center", "scale", "nzv")
 # Logistic Regression
 
 set.seed(1234)
-n <- 60000
+n <- 5000
 rand_train <- mdf_train[sample(1:nrow(mdf_train), n, replace=FALSE),]
 
 model.glm <- train(price ~ .,
@@ -24,7 +24,7 @@ rsq.glm  <- cor(yhat.glm, mdf_test$price)^2
 # Training a random forest model
 
 set.seed(1234)
-n <- 10000
+n <- 5000
 rand_train <- mdf_train[sample(1:nrow(mdf_train), n, replace=FALSE),]
 control <- trainControl(method="repeatedcv", number=4, repeats=2)
 
@@ -110,7 +110,7 @@ rsq.rf  <- cor(yhat.rf, mdf_test$price)^2
 # Lasso training data
 
 set.seed(1234)
-n <- 300000 #marginal return on code running after this point
+n <- 100000 #marginal return on code running after this point
 rand_train <- mdf_train[sample(1:nrow(mdf_train), n, replace=FALSE),]
 control <- trainControl(method="repeatedcv", number=4, repeats=2)
 
@@ -163,6 +163,27 @@ yhat.xgboost <- predict(model.xgboost, model.matrix(price ~ . -1, mdf_test))
 rmse.xgboost <- sqrt(mean((yhat.xgboost - mdf_test$price)^2))
 rsq.xgboost  <- cor(yhat.xgboost, mdf_test$price)^2
 
+# Attempt at ANN
+
+# Ran in wayyy too long of a time due to num features,
+# or required converting data to a matrix (not possible when
+# validating with same dataset)
+
+# library(nnet)
+# 
+# set.seed(1234)
+# n <- 1000
+# rand_train <- mdf_train[sample(1:nrow(mdf_train), n, replace=FALSE),]
+# 
+# 
+# model.ann <- nnet(
+#   select(rand_train, -price),
+#   rand_train$price,
+#   size=2,
+#   rang = 0.1,
+#   decay = 5e-4,
+#   maxit=200
+# )
 
 
 
